@@ -18,9 +18,8 @@ package controller
 
 import (
 	"context"
-	"fmt"
+	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -36,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	batchv1 "tutorial.kubebuilder.io/project/api/v1"
+	batchv2 "tutorial.kubebuilder.io/project/api/v2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -61,26 +61,33 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.TODO())
 
 	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "config", "crd", "bases")},
-		ErrorIfCRDPathMissing: true,
 
+	binaryAssetsDir := filepath.Join(os.Getenv("HOME"), "kubebuilder-envtest/k8s/1.31.0-darwin-amd64")
+	// Verifique se o diretório binário existe
+	if _, err := os.Stat(binaryAssetsDir); os.IsNotExist(err) {
+		Fail("O diretório de binários não existe: " + binaryAssetsDir)
+	}
+
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths:     []string{"/Users/thalitaportes/cronJob/project/config/crd/bases"},
+		ErrorIfCRDPathMissing: true,
 		// The BinaryAssetsDirectory is only required if you want to run the tests directly
 		// without call the makefile target test. If not informed it will look for the
 		// default path defined in controller-runtime which is /usr/local/kubebuilder/.
 		// Note that you must have the required binaries setup under the bin directory to perform
 		// the tests directly. When we run make test it will be setup and used automatically.
-		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s",
-			fmt.Sprintf("1.31.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
+		BinaryAssetsDirectory: binaryAssetsDir,
 	}
 
 	var err error
-	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
 	err = batchv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = batchv2.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme

@@ -51,8 +51,9 @@ var _ = Describe("CronJob controller", func() {
 									// For simplicity, we only fill out the required fields.
 									Containers: []v1.Container{
 										{
-											Name:  "test-container",
-											Image: "test-image",
+											Name:    "test-container",
+											Image:   "test-image",
+											Command: []string{"sleep", "3600"},
 										},
 									},
 									RestartPolicy: v1.RestartPolicyOnFailure,
@@ -108,14 +109,13 @@ var _ = Describe("CronJob controller", func() {
 
 			controllerRef := metav1.NewControllerRef(createdCronjob, gvk)
 			testJob.SetOwnerReferences([]metav1.OwnerReference{*controllerRef})
+
 			Expect(k8sClient.Create(ctx, testJob)).To(Succeed())
 			// Note that you can not manage the status values while creating the resource.
 			// The status field is managed separately to reflect the current state of the resource.
 			// Therefore, it should be updated using a PATCH or PUT operation after the resource has been created.
 			// Additionally, it is recommended to use StatusConditions to manage the status. For further information see:
 			// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
-			testJob.Status.Active = 2
-			Expect(k8sClient.Status().Update(ctx, testJob)).To(Succeed())
 
 			By("By checking that the CronJob has one active Job")
 			Eventually(func(g Gomega) {
