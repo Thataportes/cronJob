@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	namespace            = "project-system"
-	prometheusNamespace  = "prometheus-operator"
+	namespace            = "default"
+	prometheusNamespace  = "default"
 	certManagerNamespace = "cert-manager"
 )
 
@@ -25,7 +25,6 @@ var _ = Describe("controller", Ordered, func() {
 		fmt.Fprintf(GinkgoWriter, "Prometheus install output: %s\n", output)
 		Expect(err).NotTo(HaveOccurred(), "Failed to install Prometheus operator")
 
-		// Verifique a existência do namespace logo após a instalação
 		By("verifying Prometheus namespace is created")
 		Eventually(func() error {
 			cmd := exec.Command("kubectl", "get", "namespace", prometheusNamespace)
@@ -33,7 +32,6 @@ var _ = Describe("controller", Ordered, func() {
 			return err
 		}, 1*time.Minute, 5*time.Second).Should(Succeed(), fmt.Sprintf("Namespace %s was not created", prometheusNamespace))
 
-		// Aguardar o operador Prometheus estar pronto
 		By("waiting for Prometheus operator to be ready")
 		cmd = exec.Command("kubectl", "wait", "--for=condition=Available", "deployment", "-l", "app.kubernetes.io/name=prometheus-operator", "--timeout=10m", "-n", prometheusNamespace)
 		_, err = utils.Run(cmd)
@@ -47,7 +45,7 @@ var _ = Describe("controller", Ordered, func() {
 
 		By("verifying cert-manager namespace exists")
 		Eventually(func() error {
-			cmd := exec.Command("kubectl", "get", "namespace", certManagerNamespace)
+			cmd := exec.Command("kubectl", "get", "pods", "-l", "control-plane=controller-manager", "-n", namespace)
 			_, err := utils.Run(cmd)
 			return err
 		}, 2*time.Minute, 5*time.Second).Should(Succeed(), fmt.Sprintf("Namespace %s does not exist", certManagerNamespace))
@@ -82,7 +80,7 @@ var _ = Describe("controller", Ordered, func() {
 		Expect(err).NotTo(HaveOccurred(), "Failed to uninstall cert-manager")
 
 		By("removing manager namespace")
-		cmd = exec.Command("kubectl", "delete", "ns", namespace, "--wait=true")
+		cmd = exec.Command("kubectl", "delete", "-f", "https://github.com/jetstack/cert-manager/releases/download/v1.14.4/cert-manager.yaml", "-n", certManagerNamespace)
 		_, err = utils.Run(cmd)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred())
 		fmt.Fprintf(GinkgoWriter, "Namespace %s deleted\n", namespace)
