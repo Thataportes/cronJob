@@ -25,6 +25,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	kbatchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -36,7 +37,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	batchv1 "tutorial.kubebuilder.io/project/api/v1"
-	"tutorial.kubebuilder.io/project/internal/controller"
+	batchv2 "tutorial.kubebuilder.io/project/api/v2"
+	"tutorial.kubebuilder.io/project/internal/v1/controller"
+	webhookbatchv1 "tutorial.kubebuilder.io/project/internal/v2/webhook"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -48,11 +51,14 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
+	utilruntime.Must(kbatchv1.AddToScheme(scheme)) // we've added this ourselves
 	utilruntime.Must(batchv1.AddToScheme(scheme))
+	utilruntime.Must(batchv2.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
+	//	existing setup
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -151,9 +157,9 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "CronJob")
 		os.Exit(1)
 	}
-
+	// nolint:goconst
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
-		if err = (&batchv1.CronJob{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = webhookbatchv1.SetupCronJobWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "CronJob")
 			os.Exit(1)
 		}

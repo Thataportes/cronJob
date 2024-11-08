@@ -25,7 +25,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// CronJobSpec defines the desired state of CronJob
+// CronJobSpec defines the desired state of CronJob.
 type CronJobSpec struct {
 	// +kubebuilder:validation:MinLength=0
 
@@ -105,6 +105,8 @@ type CronJobStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +versionName=v1
+// +kubebuilder:storageversion
 
 // CronJob is the Schema for the cronjobs API
 type CronJob struct {
